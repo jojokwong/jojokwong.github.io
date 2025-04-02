@@ -1,0 +1,998 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>按季別房地車單價中位數之百分比變化</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+  </head>
+<body>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+svg {
+  border: 1px solid #ddd;
+}
+
+.tooltip {
+  position: absolute;
+  background-color: white;
+  border: 1px solid #ddd;
+  padding: 5px;
+  font-size: 14px;
+  pointer-events: none;
+  display: none;
+  text-align: left;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 2;
+}
+
+.dot {
+  fill: steelblue;
+  stroke: white;
+  stroke-width: 2;
+}
+
+.detail-label {
+  font-size: 12px;
+  fill: black;
+  text-anchor: middle;
+}
+
+.label-background {
+  fill: #ffff66;
+  opacity: 0.7;
+  rx: 3;
+  ry: 3;
+}
+</style>
+    <h1>按季別房地車單價中位數之百分比變化</h1>
+    <label for="placeSelect"><strong>選擇縣市:</strong></label>
+    <select id="placeSelect">
+      <option value="Nation">全國</option>
+      <option value="Taipei">台北市</option>
+      <option value="NewTaipei">新北市</option>
+      <option value="Taoyuan">桃園市</option>
+      <option value="Taichung">台中市</option>
+      <option value="Tainan">台南市</option>
+      <option value="Kaohsiung">高雄市</option>
+      <option value="HsinchuCity">新竹市</option>
+      <option value="HsinchuCounty">新竹縣</option>
+    </select>
+    <br><br>
+    <label for="checkbox-container"><strong>顯示地政大事記:</strong></label>
+    <div id="checkbox-container"></div>
+    <br><br>
+  <div class="tooltip" id="tooltip"></div>
+
+<script>
+const margin = { top: 50, right: 100, bottom: 100, left: 60 },
+      width = 1500 - margin.left - margin.right,
+      height = 500 - margin.top - margin.bottom;
+
+const svg = d3.select("body")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+let data = [
+  {
+    Quarter: "2011_Q1",
+    Nation: 106689,
+    Taipei: 195001,
+    NewTaipei: 119468,
+    Taoyuan: 107206,
+    Taichung: 57518,
+    Tainan: 52122,
+    Kaohsiung: 96272,
+    HsinchuCity: 39154,
+    HsinchuCounty: 35624,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2011_Q2",
+    Nation: 64834,
+    Taipei: 208486,
+    NewTaipei: 133433,
+    Taoyuan: 47134,
+    Taichung: 55468,
+    Tainan: 47308,
+    Kaohsiung: 107118,
+    HsinchuCity: 40637,
+    HsinchuCounty: 58642,
+    Label: "奢侈稅",
+    Detail: "立法院三讀通過《特種貨物及勞務稅條例》（奢侈稅）"
+  },
+  {
+    Quarter: "2011_Q3",
+    Nation: 60645,
+    Taipei: 192215,
+    NewTaipei: 125527,
+    Taoyuan: 51293,
+    Taichung: 52760,
+    Tainan: 51344,
+    Kaohsiung: 111390,
+    HsinchuCity: 73724,
+    HsinchuCounty: 60645,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2011_Q4",
+    Nation: 58140,
+    Taipei: 165580,
+    NewTaipei: 121310,
+    Taoyuan: 51557,
+    Taichung: 42174,
+    Tainan: 50333,
+    Kaohsiung: 77601,
+    HsinchuCity: 74645,
+    HsinchuCounty: 65964,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2012_Q1",
+    Nation: 52487,
+    Taipei: 189723,
+    NewTaipei: 112667,
+    Taoyuan: 51042,
+    Taichung: 43496,
+    Tainan: 39301,
+    Kaohsiung: 59712,
+    HsinchuCity: 74998,
+    HsinchuCounty: 59857,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2012_Q2",
+    Nation: 57375,
+    Taipei: 226792,
+    NewTaipei: 93205,
+    Taoyuan: 49913,
+    Taichung: 49180,
+    Tainan: 40607,
+    Kaohsiung: 50249,
+    HsinchuCity: 74600,
+    HsinchuCounty: 63547,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2012_Q3",
+    Nation: 53057,
+    Taipei: 161267,
+    NewTaipei: 65525,
+    Taoyuan: 46225,
+    Taichung: 42642,
+    Tainan: 29420,
+    Kaohsiung: 42116,
+    HsinchuCity: 58370,
+    HsinchuCounty: 52442,
+    Label: "實價登錄",
+    Detail: "正式施行實價登錄制度"
+  },
+  {
+    Quarter: "2012_Q4",
+    Nation: 52901,
+    Taipei: 167696,
+    NewTaipei: 70503,
+    Taoyuan: 46820,
+    Taichung: 45298,
+    Tainan: 23470,
+    Kaohsiung: 44813,
+    HsinchuCity: 38728,
+    HsinchuCounty: 53449,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2013_Q1",
+    Nation: 55348,
+    Taipei: 172838,
+    NewTaipei: 80876,
+    Taoyuan: 47829,
+    Taichung: 48291,
+    Tainan: 30694,
+    Kaohsiung: 45571,
+    HsinchuCity: 57488,
+    HsinchuCounty: 53472,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2013_Q2",
+    Nation: 59568,
+    Taipei: 174553,
+    NewTaipei: 82677,
+    Taoyuan: 50498,
+    Taichung: 49185,
+    Tainan: 32028,
+    Kaohsiung: 48161,
+    HsinchuCity: 44546,
+    HsinchuCounty: 56959,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2013_Q3",
+    Nation: 61502,
+    Taipei: 170840,
+    NewTaipei: 80594,
+    Taoyuan: 52276,
+    Taichung: 48830,
+    Tainan: 33854,
+    Kaohsiung: 49636,
+    HsinchuCity: 53074,
+    HsinchuCounty: 57550,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2013_Q4",
+    Nation: 59842,
+    Taipei: 178229,
+    NewTaipei: 86081,
+    Taoyuan: 53529,
+    Taichung: 48441,
+    Tainan: 34466,
+    Kaohsiung: 46357,
+    HsinchuCity: 55882,
+    HsinchuCounty: 55830,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2014_Q1",
+    Nation: 59114,
+    Taipei: 176732,
+    NewTaipei: 91747,
+    Taoyuan: 54041,
+    Taichung: 48240,
+    Tainan: 34142,
+    Kaohsiung: 43242,
+    HsinchuCity: 55130,
+    HsinchuCounty: 56684,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2014_Q2",
+    Nation: 62341,
+    Taipei: 176386,
+    NewTaipei: 90765,
+    Taoyuan: 53342,
+    Taichung: 52597,
+    Tainan: 39174,
+    Kaohsiung: 52504,
+    HsinchuCity: 64004,
+    HsinchuCounty: 59047,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2014_Q3",
+    Nation: 62660,
+    Taipei: 178577,
+    NewTaipei: 85922,
+    Taoyuan: 57908,
+    Taichung: 51506,
+    Tainan: 37620,
+    Kaohsiung: 53146,
+    HsinchuCity: 58413,
+    HsinchuCounty: 58372,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2014_Q4",
+    Nation: 63377,
+    Taipei: 187010,
+    NewTaipei: 93268,
+    Taoyuan: 57773,
+    Taichung: 53573,
+    Tainan: 40778,
+    Kaohsiung: 53334,
+    HsinchuCity: 58263,
+    HsinchuCounty: 58933,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2015_Q1",
+    Nation: 60072,
+    Taipei: 187287,
+    NewTaipei: 88330,
+    Taoyuan: 56291,
+    Taichung: 53820,
+    Tainan: 36939,
+    Kaohsiung: 50596,
+    HsinchuCity: 59799,
+    HsinchuCounty: 56117,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2015_Q2",
+    Nation: 63008,
+    Taipei: 182034,
+    NewTaipei: 90875,
+    Taoyuan: 55478,
+    Taichung: 57126,
+    Tainan: 38452,
+    Kaohsiung: 50260,
+    HsinchuCity: 65620,
+    HsinchuCounty: 58006,
+    Label: "房地合一稅1.0",
+    Detail: "立法院三讀通過房地合一稅1.0"
+  },
+  {
+    Quarter: "2015_Q3",
+    Nation: 60096,
+    Taipei: 175402,
+    NewTaipei: 88462,
+    Taoyuan: 54458,
+    Taichung: 55265,
+    Tainan: 39515,
+    Kaohsiung: 52107,
+    HsinchuCity: 68531,
+    HsinchuCounty: 44361,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2015_Q4",
+    Nation: 57732,
+    Taipei: 205934,
+    NewTaipei: 96994,
+    Taoyuan: 65220,
+    Taichung: 56300,
+    Tainan: 49858,
+    Kaohsiung: 46251,
+    HsinchuCity: 95876,
+    HsinchuCounty: 67982,
+    Label: "國土計畫法",
+    Detail: "立法院三讀通過制定《國土計畫法》"
+  },
+  {
+    Quarter: "2016_Q1",
+    Nation: 66519,
+    Taipei: 232654,
+    NewTaipei: 108295,
+    Taoyuan: 83258,
+    Taichung: 84578,
+    Tainan: 53420,
+    Kaohsiung: 44771,
+    HsinchuCity: 42304,
+    HsinchuCounty: 69793,
+    Label: "停徵奢侈稅",
+    Detail: "奢侈稅房屋停徵"
+  },
+  {
+    Quarter: "2016_Q2",
+    Nation: 74026,
+    Taipei: 210522,
+    NewTaipei: 120764,
+    Taoyuan: 55932,
+    Taichung: 90784,
+    Tainan: 51306,
+    Kaohsiung: 45511,
+    HsinchuCity: 72162,
+    HsinchuCounty: 67225,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2016_Q3",
+    Nation: 67022,
+    Taipei: 226199,
+    NewTaipei: 120612,
+    Taoyuan: 64664,
+    Taichung: 62306,
+    Tainan: 52034,
+    Kaohsiung: 49265,
+    HsinchuCity: 63153,
+    HsinchuCounty: 59980,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2016_Q4",
+    Nation: 58960,
+    Taipei: 243958,
+    NewTaipei: 116959,
+    Taoyuan: 56866,
+    Taichung: 58545,
+    Tainan: 53630,
+    Kaohsiung: 51410,
+    HsinchuCity: 56529,
+    HsinchuCounty: 67342,
+    Label: "地籍異動即時通",
+    Detail: "內政部推出「地籍異動即時通服務」"
+  },
+  {
+    Quarter: "2017_Q1",
+    Nation: 58084,
+    Taipei: 243137,
+    NewTaipei: 113604,
+    Taoyuan: 63894,
+    Taichung: 47235,
+    Tainan: 53803,
+    Kaohsiung: 60800,
+    HsinchuCity: 58530,
+    HsinchuCounty: 66968,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2017_Q2",
+    Nation: 66191,
+    Taipei: 231881,
+    NewTaipei: 81018,
+    Taoyuan: 69908,
+    Taichung: 68123,
+    Tainan: 53219,
+    Kaohsiung: 55578,
+    HsinchuCity: 96805,
+    HsinchuCounty: 66410,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2017_Q3",
+    Nation: 72299,
+    Taipei: 208890,
+    NewTaipei: 113605,
+    Taoyuan: 69062,
+    Taichung: 73672,
+    Tainan: 50270,
+    Kaohsiung: 57711,
+    HsinchuCity: 87498,
+    HsinchuCounty: 57473,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2017_Q4",
+    Nation: 64764,
+    Taipei: 160290,
+    NewTaipei: 99992,
+    Taoyuan: 56200,
+    Taichung: 62523,
+    Tainan: 48684,
+    Kaohsiung: 53949,
+    HsinchuCity: 72294,
+    HsinchuCounty: 62648,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2018_Q1",
+    Nation: 64301,
+    Taipei: 188320,
+    NewTaipei: 101290,
+    Taoyuan: 57220,
+    Taichung: 61200,
+    Tainan: 49128,
+    Kaohsiung: 54633,
+    HsinchuCity: 66774,
+    HsinchuCounty: 60268,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2018_Q2",
+    Nation: 64252,
+    Taipei: 186987,
+    NewTaipei: 99286,
+    Taoyuan: 59668,
+    Taichung: 60288,
+    Tainan: 48868,
+    Kaohsiung: 51753,
+    HsinchuCity: 73492,
+    HsinchuCounty: 60883,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2018_Q3",
+    Nation: 67155,
+    Taipei: 188086,
+    NewTaipei: 98528,
+    Taoyuan: 59527,
+    Taichung: 63488,
+    Tainan: 47260,
+    Kaohsiung: 54014,
+    HsinchuCity: 76815,
+    HsinchuCounty: 65123,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2018_Q4",
+    Nation: 67146,
+    Taipei: 194727,
+    NewTaipei: 96012,
+    Taoyuan: 59260,
+    Taichung: 64726,
+    Tainan: 47253,
+    Kaohsiung: 54354,
+    HsinchuCity: 78072,
+    HsinchuCounty: 63070,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2019_Q1",
+    Nation: 65611,
+    Taipei: 193168,
+    NewTaipei: 101148,
+    Taoyuan: 60539,
+    Taichung: 63516,
+    Tainan: 48256,
+    Kaohsiung: 55465,
+    HsinchuCity: 76063,
+    HsinchuCounty: 61234,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2019_Q2",
+    Nation: 67550,
+    Taipei: 192719,
+    NewTaipei: 102804,
+    Taoyuan: 62088,
+    Taichung: 67035,
+    Tainan: 49270,
+    Kaohsiung: 55897,
+    HsinchuCity: 74834,
+    HsinchuCounty: 61781,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2019_Q3",
+    Nation: 69495,
+    Taipei: 199586,
+    NewTaipei: 107628,
+    Taoyuan: 64068,
+    Taichung: 68986,
+    Tainan: 51312,
+    Kaohsiung: 56307,
+    HsinchuCity: 74458,
+    HsinchuCounty: 62245,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2019_Q4",
+    Nation: 70840,
+    Taipei: 197957,
+    NewTaipei: 105558,
+    Taoyuan: 67533,
+    Taichung: 68243,
+    Tainan: 51723,
+    Kaohsiung: 57101,
+    HsinchuCity: 75685,
+    HsinchuCounty: 64325,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2020_Q1",
+    Nation: 70093,
+    Taipei: 195177,
+    NewTaipei: 102551,
+    Taoyuan: 65944,
+    Taichung: 68926,
+    Tainan: 55056,
+    Kaohsiung: 56278,
+    HsinchuCity: 82891,
+    HsinchuCounty: 62615,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2020_Q2",
+    Nation: 71570,
+    Taipei: 200862,
+    NewTaipei: 106569,
+    Taoyuan: 67279,
+    Taichung: 68226,
+    Tainan: 56492,
+    Kaohsiung: 58942,
+    HsinchuCity: 79243,
+    HsinchuCounty: 71108,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2020_Q3",
+    Nation: 74438,
+    Taipei: 208720,
+    NewTaipei: 109672,
+    Taoyuan: 72659,
+    Taichung: 73319,
+    Tainan: 61004,
+    Kaohsiung: 57687,
+    HsinchuCity: 75902,
+    HsinchuCounty: 68450,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2020_Q4",
+    Nation: 75165,
+    Taipei: 209516,
+    NewTaipei: 108673,
+    Taoyuan: 72769,
+    Taichung: 75328,
+    Tainan: 60000,
+    Kaohsiung: 58279,
+    HsinchuCity: 79679,
+    HsinchuCounty: 75809,
+    Label: "第一波信用管制",
+    Detail: "中央銀行推出第一波選擇性信用管制"
+  },
+  {
+    Quarter: "2021_Q1",
+    Nation: 76715,
+    Taipei: 203005,
+    NewTaipei: 113559,
+    Taoyuan: 71987,
+    Taichung: 78624,
+    Tainan: 58201,
+    Kaohsiung: 62274,
+    HsinchuCity: 80372,
+    HsinchuCounty: 73190,
+    Label: "第二波信用管制",
+    Detail: "中央銀行推出第二波選擇性信用管制"
+  },
+  {
+    Quarter: "2021_Q2",
+    Nation: 75339,
+    Taipei: 203806,
+    NewTaipei: 107953,
+    Taoyuan: 75389,
+    Taichung: 74430,
+    Tainan: 59090,
+    Kaohsiung: 60530,
+    HsinchuCity: 81615,
+    HsinchuCounty: 79222,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2021_Q3",
+    Nation: 78240,
+    Taipei: 210183,
+    NewTaipei: 109409,
+    Taoyuan: 75428,
+    Taichung: 83199,
+    Tainan: 64347,
+    Kaohsiung: 65000,
+    HsinchuCity: 72922,
+    HsinchuCounty: 81270,
+    Label: "實價登錄2.0",
+    Detail: "實價登錄新制2.0上路"
+  },
+  {
+    Quarter: "2021_Q4",
+    Nation: 81519,
+    Taipei: 216270,
+    NewTaipei: 112650,
+    Taoyuan: 78421,
+    Taichung: 83632,
+    Tainan: 66352,
+    Kaohsiung: 71691,
+    HsinchuCity: 76290,
+    HsinchuCounty: 79787,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2022_Q1",
+    Nation: 84657,
+    Taipei: 218302,
+    NewTaipei: 115191,
+    Taoyuan: 78793,
+    Taichung: 86062,
+    Tainan: 68698,
+    Kaohsiung: 74764,
+    HsinchuCity: 80048,
+    HsinchuCounty: 103050,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2022_Q2",
+    Nation: 88215,
+    Taipei: 216723,
+    NewTaipei: 114912,
+    Taoyuan: 81832,
+    Taichung: 88347,
+    Tainan: 74823,
+    Kaohsiung: 78314,
+    HsinchuCity: 78256,
+    HsinchuCounty: 99648,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2022_Q3",
+    Nation: 89310,
+    Taipei: 210711,
+    NewTaipei: 114683,
+    Taoyuan: 84517,
+    Taichung: 87070,
+    Tainan: 78742,
+    Kaohsiung: 77677,
+    HsinchuCity: 86413,
+    HsinchuCounty: 112391,
+    Label: "租金補貼(111年度) / 第三波信用管制",
+    Detail: "實施300億元中央擴大租金補貼(111年度) / 中央銀行推出第三波選擇性信用管制"
+  },
+  {
+    Quarter: "2022_Q4",
+    Nation: 87464,
+    Taipei: 216965,
+    NewTaipei: 115646,
+    Taoyuan: 81721,
+    Taichung: 85279,
+    Tainan: 76049,
+    Kaohsiung: 77134,
+    HsinchuCity: 95321,
+    HsinchuCounty: 105172,
+    Label: "第四波信用管制",
+    Detail: "中央銀行推出第四波選擇性信用管制"
+  },
+  {
+    Quarter: "2023_Q1",
+    Nation: 86956,
+    Taipei: 213523,
+    NewTaipei: 117298,
+    Taoyuan: 81365,
+    Taichung: 84826,
+    Tainan: 74207,
+    Kaohsiung: 79260,
+    HsinchuCity: 93394,
+    HsinchuCounty: 103500,
+    Label: "平均地權條例 / 地籍清理條例 / 租賃專法",
+    Detail: "立法院三讀通過《平均地權條例》修正草案 / 立法院三讀通過《地籍清理條例》部分條文修正草案 / 立法院三讀通過《租賃住宅市場發展及管理條例》（租賃專法）部分修正條文草案"
+  },
+  {
+    Quarter: "2023_Q2",
+    Nation: 92331,
+    Taipei: 222478,
+    NewTaipei: 122452,
+    Taoyuan: 86337,
+    Taichung: 89413,
+    Tainan: 81574,
+    Kaohsiung: 80305,
+    HsinchuCity: 102324,
+    HsinchuCounty: 111942,
+    Label: "第五波信用管制",
+    Detail: "中央銀行推出第五波選擇性信用管制"
+  },
+  {
+    Quarter: "2023_Q3",
+    Nation: 93092,
+    Taipei: 219587,
+    NewTaipei: 121036,
+    Taoyuan: 90451,
+    Taichung: 90289,
+    Tainan: 79692,
+    Kaohsiung: 81687,
+    HsinchuCity: 106597,
+    HsinchuCounty: 116698,
+    Label: "租金補貼(112-113年度) / 新青安貸款方案",
+    Detail: "實施300億元中央擴大租金補貼(112-113年度) / 「新青安貸款方案」上路"
+  },
+  {
+    Quarter: "2023_Q4",
+    Nation: 95332,
+    Taipei: 224943,
+    NewTaipei: 121571,
+    Taoyuan: 90048,
+    Taichung: 93434,
+    Tainan: 81635,
+    Kaohsiung: 85850,
+    HsinchuCity: 110398,
+    HsinchuCounty: 118130,
+    Label: "囤房稅2.0",
+    Detail: "立法院三讀通過《房屋稅條例》修正草案（囤房稅2.0）"
+  },
+  {
+    Quarter: "2024_Q1",
+    Nation: 98162,
+    Taipei: 230464,
+    NewTaipei: 128160,
+    Taoyuan: 91999,
+    Taichung: 95684,
+    Tainan: 84302,
+    Kaohsiung: 92598,
+    HsinchuCity: 111985,
+    HsinchuCounty: 124062,
+    Label: null,
+    Detail: null
+  },
+  {
+    Quarter: "2024_Q2",
+    Nation: 101031,
+    Taipei: 239808,
+    NewTaipei: 134627,
+    Taoyuan: 92720,
+    Taichung: 99670,
+    Tainan: 89211,
+    Kaohsiung: 96568,
+    HsinchuCity: 118289,
+    HsinchuCounty: 128433,
+    Label: "第六波信用管制 / 新青安貸款精進方案",
+    Detail: "中央銀行推出第六波選擇性信用管制 / 實施「新青安貸款精進方案」"
+  },
+  {
+    Quarter: "2024_Q3",
+    Nation: 101615,
+    Taipei: 241214,
+    NewTaipei: 130064,
+    Taoyuan: 91285,
+    Taichung: 100000,
+    Tainan: 86031,
+    Kaohsiung: 97177,
+    HsinchuCity: 117667,
+    HsinchuCounty: 135596,
+    Label: "租屋電費新制 / 土地法 / 不動產估價師法 / 第七波信用管制",
+    Detail: "「租屋電費新制」上路 / 立法院三讀通過《土地法》第14條修正案 / 立法院三讀通過《不動產估價師法》部分條文修正草案 / 中央銀行推出第七波選擇性信用管制"
+  },
+  {
+    Quarter: "2024_Q4",
+    Nation: 92811,
+    Taipei: 243170,
+    NewTaipei: 133656,
+    Taoyuan: 86322,
+    Taichung: 94360,
+    Tainan: 82188,
+    Kaohsiung: 88454,
+    HsinchuCity: 108209,
+    HsinchuCounty: 94925,
+    Label: "國土計畫法延期",
+    Detail: "立法院三讀通過《國土計畫法》修正案延期6年至2031年"
+  }
+];
+let selectedPlace = "Nation";
+let showDetails = {};
+data.forEach(d => showDetails[d.Detail] = false);
+
+const checkboxContainer = d3.select("#checkbox-container");
+Object.keys(showDetails).forEach(detail => {
+  if (detail !== "null" && detail !== "") {
+    const label = checkboxContainer.append("label");
+    label.append("input")
+      .attr("type", "checkbox")
+      .attr("id", `checkbox-${detail}`)
+      .on("change", function() {
+      showDetails[detail] = this.checked;
+      updateChart();
+    });
+    label.append("span").text(` ${detail}`);
+    checkboxContainer.append("br");
+  }
+});
+
+const x = d3.scaleBand()
+            .domain(data.map(d => d.Quarter))
+            .range([0, width])
+            .paddingInner(0.5)
+            .paddingOuter(1);
+
+const y = d3.scaleLinear()
+            .range([height, 0]);
+
+const xAxisGroup = svg.append("g")
+                      .attr("class", "x-axis")
+                      .attr("transform", `translate(0,${height})`);
+
+const yAxisGroup = svg.append("g").attr("class", "y-axis");
+
+svg.append("path").attr("class", "line");
+
+function updateChart() {
+  const yMin = 0;
+  const yMax = d3.max(data, d => d[selectedPlace]) + 500;
+  y.domain([yMin, yMax]).nice();
+  
+  const xAxis = d3.axisBottom(x);
+  const yAxis = d3.axisLeft(y);
+
+  xAxisGroup.transition().duration(1000).call(xAxis)
+            .selectAll("text")
+            .style("text-anchor","end")
+            .attr("dx","-0.8em")
+            .attr("dy","0.15em")
+            .attr("transform","rotate(-45)");
+  
+  yAxisGroup.transition().duration(1000).call(yAxis);
+
+  const lineGen = d3.line()
+                    .x(d => x(d.Quarter) + x.bandwidth() / 2)
+                    .y(d => y(d[selectedPlace]));
+
+  svg.select(".line")
+     .datum(data)
+     .transition().duration(1000)
+     .attr("d", lineGen);
+
+  const dots = svg.selectAll(".dot")
+                  .data(data, d => d.Quarter);
+
+  dots.enter()
+    .append("circle")
+    .attr("class", "dot")
+    .attr("cx", d => x(d.Quarter) + x.bandwidth() / 2)
+    .attr("cy", d => y(d[selectedPlace]))
+    .attr("r", 5)
+    .on("mouseover", function(event, d) {
+    d3.select("#tooltip")
+      .style("display","block")
+      .style("left",`${event.pageX + 5}`)
+      .style("top",`${event.pageY - 30}`)
+      .html(`<b>${d.Quarter}</b><br>價格: ${d[selectedPlace].toLocaleString()}元/坪`)
+  }).on("mouseout", function() {
+    d3.select("#tooltip")
+      .style("display","none")
+  })
+    .merge(dots)
+    .transition().duration(1000)
+    .attr("cx", d => x(d.Quarter) + x.bandwidth() / 2)
+    .attr("cy", d => y(d[selectedPlace]));
+
+  dots.exit().remove();
+
+  const labels = svg.selectAll(".detail-label-group")
+                    .data(data);
+
+  labels.enter().append("g")
+    .attr("class", "detail-label-group")
+    .each(function(d) {
+    const group = d3.select(this);
+    const textElem = group.append("text")
+                          .attr("class", "detail-label")
+                          .attr("dy", "0.35em")
+                          .text(d.Label);
+    
+    textElem.each(function() {
+      const bbox = this.getBBox();
+      group.insert("rect", "text")
+           .attr("class", "label-background")
+           .attr("x", bbox.x - 5)
+           .attr("y", bbox.y - 2)
+           .attr("width", bbox.width + 10)
+           .attr("height", bbox.height + 4);
+    });
+  })
+    .merge(labels)
+    .attr("transform", d => `translate(${x(d.Quarter) + x.bandwidth() / 2}, ${y(d[selectedPlace]) - 15})`)
+    .style("display", d => showDetails[d.Detail] ? "block" : "none");
+
+  labels.exit().remove();
+}
+
+d3.select("#placeSelect").on("change", function() {
+  selectedPlace = this.value;
+  updateChart();
+});
+
+updateChart();
+</script>
+</body>
+</html>
