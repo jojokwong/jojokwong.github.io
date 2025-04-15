@@ -44,7 +44,7 @@ svg {
 .detail-label {
   font-size: 12px;
   fill: black;
-  text-anchor: end;
+  text-anchor: start;
   writing-mode: vertical-rl;
   glyph-orientation-vertical: 0;
 }
@@ -918,7 +918,7 @@ function updateChart() {
     const group = d3.select(this);
     const textElem = group.append("text")
                           .attr("class", "detail-label")
-                          .attr("dy", "0.35em");
+                          .attr("dy", "2.5em");
 
     const lines = d.Label.split(' / ');
     
@@ -926,6 +926,7 @@ function updateChart() {
       textElem.append("tspan")
         .attr("dx", index === 0 ? "0em" : "-1.1em")
         .attr("y", 0)
+        .attr("dy", "2.5em")
         .text(line);
     })
     
